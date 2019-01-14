@@ -36,16 +36,11 @@ def connected():
         ret, frame = camera.read()
         outline = process_frame(frame)
 
+        # Calculate position to target
+
+        # Send position to RoboRIO through SmartDashboard
+
         cv2.waitKey(1)
-
-
-def show_webcam():
-    while True:
-        ret_val, img = camera.read()
-        cv2.imshow('my webcam', img)
-        if cv2.waitKey(1) == 27:
-            break  # esc to quit
-    cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
