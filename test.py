@@ -4,7 +4,7 @@ window_name = "Test Window"
 
 cv2.namedWindow(window_name)
 
-camera = cv2.VideoCapture(1)
+camera = cv2.VideoCapture(0)
 camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 
@@ -43,10 +43,32 @@ cv2.createTrackbar("CAP_PROP_CONTRAST", window_name, 50, 100, cSet(cv2.CAP_PROP_
 def show_webcam():
     while True:
         ret_val, img = camera.read()
-        cv2.imshow('my webcam', img)
+        if img is not None:
+            contours = process_frame(img)
+            cv2.drawContours(img, contours, -1, (0, 255, 0))
+            cv2.imshow('my webcam', img)
         if cv2.waitKey(1) == 27:
             break  # esc to quit
     cv2.destroyAllWindows()
+
+
+def process_frame(frame):
+    hue = [53.417266187050366, 75.5631399317406]
+    sat = [208.67805755395685, 255.0]
+    val = [18.34532374100722, 255.0]
+
+    color = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    filtered = cv2.inRange(color, (hue[0], sat[0], val[0]), (hue[1], sat[1], val[1]))
+
+    contours, hierarchy = cv2.findContours(filtered, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    approx = []
+    for i in contours:
+        eps = 0.05 * cv2.arcLength(i, True)
+        apx = cv2.approxPolyDP(i, eps, True)
+        approx.append(apx)
+
+    return approx
 
 
 if __name__ == "__main__":

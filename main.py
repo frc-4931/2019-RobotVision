@@ -1,6 +1,8 @@
 from networktables import NetworkTables
 from time import sleep, ctime, time
 import cv2
+import numpy as np
+from grip import GripPipeline
 
 camera = cv2.VideoCapture(0)
 camera.set(3,640)
@@ -9,12 +11,20 @@ camera.set(4,480)
 connection_timeout = 120
 NT_server = "roborio-4931-frc.local"
 
-
-def process_frame():
-    ret, frame = camera.read()
+gp = GripPipeline()
 
 
-    return frame
+def process_frame(frame):
+    gp.process(frame)
+    contour = gp.find_contours_output
+
+    approx = []
+    for i in contour:
+        eps = 0.05 * cv2.arcLength(i, True)
+        apx = cv2.approxPolyDP(i, eps, True)
+        approx.append(apx)
+
+    return approx
 
 
 def connected():
@@ -23,15 +33,15 @@ def connected():
     smartDashboard.putString("Data from py", "Hello World! - From Raspi! Connected on {0:s}".format(ctime()))
 
     while True:
-        frame = process_frame()
+        ret, frame = camera.read()
+        outline = process_frame(frame)
 
-        outline = cv2.findContours(frame, cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
         cv2.waitKey(1)
 
 
 def show_webcam():
     while True:
-        ret_val, img = cam.read()
+        ret_val, img = camera.read()
         cv2.imshow('my webcam', img)
         if cv2.waitKey(1) == 27:
             break  # esc to quit
