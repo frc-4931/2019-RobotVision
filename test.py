@@ -1,6 +1,7 @@
 import cv2
+import numpy as np
 
-camera = cv2.VideoCapture(0)
+camera = cv2.VideoCapture(1)
 camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
 camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
 
@@ -62,15 +63,28 @@ def process_frame(frame):
     for i in contours:
         eps = 0.05 * cv2.arcLength(i, True)
         apx = cv2.approxPolyDP(i, eps, True)
-        approx.append(apx)
+
+        if cv2.contourArea(apx) > 100:  # TODO contour threshold
+            approx.append(apx)
 
     return approx
 
 
-def draw_contours(frame):
-    contours = process_frame(frame)
+def draw_contours(frame, contours):
     cv2.drawContours(frame, contours, -1, (255, 255, 0))
     return contours
+
+
+def get_center(side):
+    return (side[0][0] + side[1][0]) / 2, (side[0][1] + side[1][1]) / 2
+
+
+def get_center_x(side):
+    return (side[0][0] + side[1][0]) / 2
+
+
+def get_center_y(side):
+    return (side[0][1] + side[1][1]) / 2
 
 
 def dist(p1, p2):
@@ -92,10 +106,17 @@ def offset_calculate(frame, contours) -> tuple:
     centers = []
     if len(contours) > 1:
         for i in contours:
+            if len(i) != 4:
+                continue
+
             M = cv2.moments(i)
 
-            cx = int(M['m10'] / M['m00'])
-            cy = int(M['m01'] / M['m00'])
+            cx, cy = -1, -1
+            try:
+                cx = int(M['m10'] / M['m00'])
+                cy = int(M['m01'] / M['m00'])
+            except ZeroDivisionError:
+                pass
 
             centers.append(((cx, cy), i))
 
@@ -105,15 +126,59 @@ def offset_calculate(frame, contours) -> tuple:
 
         # Draw line connecting the two contours
         # TODO remove this when moving into main
-        cv2.line(frame, centers[0][0], centers[1][0], (255, 0, 0))
+        if len(centers) >= 2:
+            cv2.line(frame, centers[0][0], centers[1][0], (255, 0, 0))
 
     else:
-        M = cv2.moments(contours[0])
+        if len(contours[0]) == 4:
+            M = cv2.moments(contours[0])
 
-        cx = int(M['m10'] / M['m00'])
-        cy = int(M['m01'] / M['m00'])
+            cx, cy = -1, -1
+            try:
+                cx = int(M['m10'] / M['m00'])
+                cy = int(M['m01'] / M['m00'])
+            except ZeroDivisionError:
+                pass
 
-        centers.append(((cx, cy), contours[0]))
+            centers.append(((cx, cy), contours[0]))
+
+    # for i in range(len(centers)):
+    #     print("{}: {}".format(i, cv2.contourArea(centers[i][1])))
+    #     print("{}: {}".format(i, centers[i][1]))
+    #     print()
+
+    # creates sides array and sorts them to the order (l/r, l/r, t/b, t/b)
+    contour_sides = []
+    for i in range(len(centers)):
+        sides = list()
+
+        # sets sides 0-3 and sorts them by longest side length
+        sides.append([centers[i][1][0][0], centers[i][1][1][0]])
+        sides.append([centers[i][1][1][0], centers[i][1][2][0]])
+        sides.append([centers[i][1][2][0], centers[i][1][3][0]])
+        sides.append([centers[i][1][3][0], centers[i][1][0][0]])
+        sides.sort(key=lambda sd: dist(*sd), reverse=True)
+
+        # Swaps 0-1 and/or 2-3 to make 0-1 = l-r and 2-3 = t-b
+        # TODO
+
+        if get_center_x(sides[0]) > get_center_x(sides[1]):
+            tmp = sides[0]
+            sides[0] = sides[1]
+            sides[1] = tmp
+
+        if get_center_y(sides[2]) > get_center_y(sides[3]):
+            tmp = sides[2]
+            sides[2] = sides[3]
+            sides[3] = tmp
+
+        print()
+        for i in sides:
+            print(dist(*i))
+
+        # print(dist(*sides[2]) / dist(*sides[0]))
+
+        contour_sides.append(sides)
 
     # Calculate skew to find angle
 
@@ -127,7 +192,11 @@ def offset_calculate(frame, contours) -> tuple:
 def show_webcam():
     while True:
         ret_val, img = camera.read()
-        # draw_contours(img)
+
+        cont = process_frame(img)
+        draw_contours(img, cont)
+        offset_calculate(img, cont)
+
         cv2.imshow('Webcam', img)
         if cv2.waitKey(1) == 27:
             break  # esc to quit
@@ -141,7 +210,8 @@ def setup_camera():
 
 def test_on_frame():
     img = cv2.imread("images/my webcam_screenshot_13.01.2019.png")
-    cont = draw_contours(img)
+    cont = process_frame(img)
+    draw_contours(img, cont)
     offset_calculate(img, cont)
     cv2.imshow("Frame", img)
     while True:
@@ -150,4 +220,5 @@ def test_on_frame():
 
 
 if __name__ == "__main__":
-    test_on_frame()
+    open_camera_config(camera)
+    show_webcam()
