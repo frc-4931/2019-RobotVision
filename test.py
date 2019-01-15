@@ -1,5 +1,12 @@
 import cv2
 import numpy as np
+import math
+
+window_name = "Test Window"
+
+hue = [53.417266187050366, 75.5631399317406]
+sat = [208.67805755395685, 255.0]
+val = [18.34532374100722, 255.0]
 
 camera = cv2.VideoCapture(1)
 camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
@@ -19,8 +26,6 @@ def camera_config(cam):
 
 
 def open_camera_config(cam):
-    window_name = "Test Window"
-
     cv2.namedWindow(window_name)
 
     camera_config(cam)
@@ -50,10 +55,6 @@ def open_camera_config(cam):
 
 
 def process_frame(frame):
-    hue = [53.417266187050366, 75.5631399317406]
-    sat = [208.67805755395685, 255.0]
-    val = [18.34532374100722, 255.0]
-
     color = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     filtered = cv2.inRange(color, (hue[0], sat[0], val[0]), (hue[1], sat[1], val[1]))
 
@@ -142,11 +143,6 @@ def offset_calculate(frame, contours) -> tuple:
 
             centers.append(((cx, cy), contours[0]))
 
-    # for i in range(len(centers)):
-    #     print("{}: {}".format(i, cv2.contourArea(centers[i][1])))
-    #     print("{}: {}".format(i, centers[i][1]))
-    #     print()
-
     # creates sides array and sorts them to the order (l/r, l/r, t/b, t/b)
     contour_sides = []
     for i in range(len(centers)):
@@ -160,8 +156,6 @@ def offset_calculate(frame, contours) -> tuple:
         sides.sort(key=lambda sd: dist(*sd), reverse=True)
 
         # Swaps 0-1 and/or 2-3 to make 0-1 = l-r and 2-3 = t-b
-        # TODO
-
         if get_center_x(sides[0]) > get_center_x(sides[1]):
             tmp = sides[0]
             sides[0] = sides[1]
@@ -172,19 +166,20 @@ def offset_calculate(frame, contours) -> tuple:
             sides[2] = sides[3]
             sides[3] = tmp
 
-        print()
-        for i in sides:
-            print(dist(*i))
-
-        # print(dist(*sides[2]) / dist(*sides[0]))
-
         contour_sides.append(sides)
 
     # Calculate skew to find angle
 
     # Calculate size / distance apart to find distance
+    if len(centers) == 2:
+        dst = dist(centers[0][0], centers[1][0])
+        distance = 268 / dst
+        print(distance)
 
     # Calculate distance from center to find [x] offset
+    feet_at_dst = distance * math.sqrt(3) / 3
+    pixels_to_feet = feet_at_dst / 1280
+    offset = (x_pixels * pixels_to_feet) - (pixels_to_feet / 2)
 
     return angle, offset, distance
 
@@ -197,7 +192,7 @@ def show_webcam():
         draw_contours(img, cont)
         offset_calculate(img, cont)
 
-        cv2.imshow('Webcam', img)
+        cv2.imshow(window_name, img)
         if cv2.waitKey(1) == 27:
             break  # esc to quit
     cv2.destroyAllWindows()
