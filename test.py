@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import math
+from time import time
 
 window_name = "Test Window"
 
@@ -65,8 +66,13 @@ def process_frame(frame):
         eps = 0.05 * cv2.arcLength(i, True)
         apx = cv2.approxPolyDP(i, eps, True)
 
-        if cv2.contourArea(apx) > 100:  # TODO contour threshold
-            approx.append(apx)
+        if cv2.contourArea(apx) < 200:  # TODO contour threshold
+            continue
+
+        if len(apx) != 4:
+            continue
+
+        approx.append(apx)
 
     return approx
 
@@ -93,11 +99,11 @@ def dist(p1, p2):
 
 
 def offset_calculate(frame, contours) -> tuple:
-    angle, offset, distance = 0, 0, 0
+    offset, distance = 0, 0
 
     # If no contours exist return all -1
     if len(contours) == 0:
-        return -1, -1, -1
+        return -1, -1
 
     # Find the center (x, y) of the frame
     height, width, channels = frame.shape
@@ -169,30 +175,56 @@ def offset_calculate(frame, contours) -> tuple:
         contour_sides.append(sides)
 
     # Calculate skew to find angle
+    # Not being used in current model
 
     # Calculate size / distance apart to find distance
     if len(centers) == 2:
         dst = dist(centers[0][0], centers[1][0])
-        distance = 268 / dst
-        print(distance)
+        distance = 2 * 510 / dst
 
     # Calculate distance from center to find [x] offset
-    feet_at_dst = distance * math.sqrt(3) / 3
+    feet_at_dst = distance * math.sqrt(3)
     pixels_to_feet = feet_at_dst / 1280
-    offset = (x_pixels * pixels_to_feet) - (pixels_to_feet / 2)
 
-    return angle, offset, distance
+    center = None
+
+    if len(centers) == 2:
+        cx = centers[0][0][0], centers[1][0][0]
+        cy = centers[0][0][1], centers[1][0][1]
+
+        center = (cx[0] + cx[1]) / 2, (cy[0] + cy[1]) / 2
+
+    # If one: get slope if slope > 0 target is on the left side, aka +.35 ft to get center
+    elif len(contour_sides) == 1:
+        left_side = contour_sides[0][0]
+        slope = (left_side[0][1] - left_side[1][1]) / (left_side[0][0] - left_side[1][0])
+        delta = 0.35 if slope > 0 else -0.35
+        center = centers[0][0][0] + delta, centers[0][0][1]
+
+    offset = (dist(center, middle) * pixels_to_feet) - (pixels_to_feet / 2)
+
+    return distance, offset
 
 
 def show_webcam():
+    last_time = time()
     while True:
         ret_val, img = camera.read()
 
         cont = process_frame(img)
         draw_contours(img, cont)
-        offset_calculate(img, cont)
+        dist, offset = offset_calculate(img, cont)
+
+        # print("Distance: {}, Offset: {}".format(dist, offset))
 
         cv2.imshow(window_name, img)
+
+        cur_time = time()
+        delta_time = cur_time - last_time
+        last_time = cur_time
+
+        print(1 / delta_time)
+
         if cv2.waitKey(1) == 27:
             break  # esc to quit
     cv2.destroyAllWindows()
