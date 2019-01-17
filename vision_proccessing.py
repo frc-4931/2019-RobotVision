@@ -26,6 +26,7 @@ def dist(p1, p2):
 def camera_config(cam):
     cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
     cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+
     cam.set(cv2.CAP_PROP_BRIGHTNESS, 0.5)  # [0, 1] ~1/2 - 142
     cam.set(cv2.CAP_PROP_AUTO_WB, .25)
     cam.set(cv2.CAP_PROP_WB_TEMPERATURE, 3184)  # [?] ~1/8 - 3184
@@ -33,6 +34,9 @@ def camera_config(cam):
     cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
     cam.set(cv2.CAP_PROP_EXPOSURE, 0)  # [0, 1] ~1/4 - -9
     cam.set(cv2.CAP_PROP_CONTRAST, 0.5)  # [0, 1] ~2/3 - 7
+
+    # cam.set(cv2.CAP_PROP_CONVERT_RGB, 0)
+    cam.set(cv2.CAP_PROP_FPS, 30.0)
 
 
 def process_frame(frame):
@@ -72,17 +76,12 @@ def offset_calculate(frame, contours) -> tuple:
     centers = []
     if len(contours) > 1:
         for i in contours:
-            if len(i) != 4:
-                continue
-
             M = cv2.moments(i)
 
             cx, cy = -1, -1
-            try:
+            if M['m00'] != 0:
                 cx = int(M['m10'] / M['m00'])
                 cy = int(M['m01'] / M['m00'])
-            except ZeroDivisionError:
-                pass
 
             centers.append(((cx, cy), i))
 
@@ -95,11 +94,9 @@ def offset_calculate(frame, contours) -> tuple:
             M = cv2.moments(contours[0])
 
             cx, cy = -1, -1
-            try:
+            if M['m00'] != 0:
                 cx = int(M['m10'] / M['m00'])
                 cy = int(M['m01'] / M['m00'])
-            except ZeroDivisionError:
-                pass
 
             centers.append(((cx, cy), contours[0]))
 
@@ -135,6 +132,16 @@ def offset_calculate(frame, contours) -> tuple:
     if len(centers) == 2:
         dst = dist(centers[0][0], centers[1][0])
         distance = 2 * 510 / dst
+
+    elif len(contour_sides) == 1:
+        dst_left = dist(contour_sides[0][0][0], contour_sides[0][0][1])
+        dst_right = dist(contour_sides[0][1][0], contour_sides[0][1][1])
+        dst = (dst_left + dst_right) / 2
+
+        # FIXME remove prints
+        # print(dst)
+        distance = 2 * 212 / dst
+        # print(distance)
 
     # Calculate distance from center to find [x] offset
     feet_at_dst = distance * math.sqrt(3)
