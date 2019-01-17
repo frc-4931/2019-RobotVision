@@ -26,6 +26,8 @@ def connected():
         distance, offset = vision.offset_calculate(frame, contours)
 
         # Send position to RoboRIO through SmartDashboard
+        smartDashboard.putNumber("Vision Distance", distance)
+        smartDashboard.putNumber("Vision Offset", offset)
 
         cv2.waitKey(1)
 

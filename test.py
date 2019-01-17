@@ -151,5 +151,6 @@ def test_on_frame():
 
 
 if __name__ == "__main__":
+    # camera.set(cv2.CAP_PROP_MODE, cv2.CAP_MODE_RGB)
     open_camera_config(camera)
     show_webcam()
