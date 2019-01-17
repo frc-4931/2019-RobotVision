@@ -1,30 +1,13 @@
 from networktables import NetworkTables
 from time import sleep, ctime, time
 import cv2
-import numpy as np
-from grip import GripPipeline
+import vision_proccessing as vision
+
 
 camera = cv2.VideoCapture(0)
-camera.set(3,640)
-camera.set(4,480)
 
 connection_timeout = 120
 NT_server = "roborio-4931-frc.local"
-
-gp = GripPipeline()
-
-
-def process_frame(frame):
-    gp.process(frame)
-    contour = gp.find_contours_output
-
-    approx = []
-    for i in contour:
-        eps = 0.05 * cv2.arcLength(i, True)
-        apx = cv2.approxPolyDP(i, eps, True)
-        approx.append(apx)
-
-    return approx
 
 
 def connected():
@@ -33,10 +16,14 @@ def connected():
     smartDashboard.putString("Data from py", "Hello World! - From Raspi! Connected on {0:s}".format(ctime()))
 
     while True:
+        # Get the current frame from camera
         ret, frame = camera.read()
-        outline = process_frame(frame)
+
+        # Calculate outlines of objects
+        contours = vision.process_frame(frame)
 
         # Calculate position to target
+        distance, offset = vision.offset_calculate(frame, contours)
 
         # Send position to RoboRIO through SmartDashboard
 
@@ -48,6 +35,9 @@ if __name__ == "__main__":
     connecting = True
     isConnected = False
     start_time = time()
+
+    # Configure the camera
+    vision.camera_config(camera)
 
     print("Connecting")
     while connecting:
