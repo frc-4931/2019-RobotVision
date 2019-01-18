@@ -6,9 +6,7 @@ import vision_proccessing as vs
 
 window_name = "Test Window"
 
-camera = cv2.VideoCapture(0)
-camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-camera.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+camera = cv2.VideoCapture(1)
 
 
 def open_camera_config(cam):
@@ -74,7 +72,6 @@ def draw_contours(frame, contours):
 
 def show_webcam():
     last_time = time()
-    vs.camera_config(camera)
     while True:
         ret_val, img = camera.read()
 
@@ -85,7 +82,7 @@ def show_webcam():
         # Add distance onto image
         if len(cont) == 2:
             M0 = cv2.moments(cont[0])
-            M1 = cv2.moments(cont[0])
+            M1 = cv2.moments(cont[1])
 
             if M0['m00'] != 0 and M1['m00'] != 0:
                 line = [[0, 0], [0, 0]]
@@ -97,9 +94,9 @@ def show_webcam():
                 line[1][1] = int(M1['m01'] / M1['m00'])
 
                 center = vs.get_center(line)
-                string = "{:.2f} feet away\n{:.2f} feet {}".format(dist, offset, "right" if offset < 0 else "left")
+                string = "{:.2f} feet away - {:.2f} feet {}".format(dist, abs(offset), "right" if offset < 0 else "left")
                 string_size = cv2.getTextSize(string, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)[0]
-                text_location = center[0] - string_size[0], center[1] + string_size[1]
+                text_location = int(center[0] - string_size[0] / 2), int(center[1] + string_size[1]/ 2)
 
                 cv2.putText(img, string, text_location, cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
@@ -118,7 +115,6 @@ def show_webcam():
 
 def proccess_nowindow():
     last_time = time()
-    vs.camera_config(camera)
     while True:
         ret_val, img = camera.read()
 
@@ -151,6 +147,5 @@ def test_on_frame():
 
 
 if __name__ == "__main__":
-    # camera.set(cv2.CAP_PROP_MODE, cv2.CAP_MODE_RGB)
     open_camera_config(camera)
     show_webcam()

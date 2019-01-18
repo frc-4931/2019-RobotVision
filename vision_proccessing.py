@@ -2,6 +2,9 @@ import cv2
 import math
 
 
+PIXELS_AT_TWO_FEET_TWO_TARGETS = 600
+PIXELS_AT_TWO_FEET_ONE_TARGET = 250
+
 hue = [53.417266187050366, 75.5631399317406]
 sat = [208.67805755395685, 255.0]
 val = [18.34532374100722, 255.0]
@@ -24,8 +27,8 @@ def dist(p1, p2):
 
 
 def camera_config(cam):
-    cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
-    cam.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+    cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    cam.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
 
     cam.set(cv2.CAP_PROP_BRIGHTNESS, 0.5)  # [0, 1] ~1/2 - 142
     cam.set(cv2.CAP_PROP_AUTO_WB, .25)
@@ -131,37 +134,38 @@ def offset_calculate(frame, contours) -> tuple:
     # Calculate size / distance apart to find distance
     if len(centers) == 2:
         dst = dist(centers[0][0], centers[1][0])
-        distance = 2 * 510 / dst
+        # print(dst)
+        distance = PIXELS_AT_TWO_FEET_TWO_TARGETS / dst
 
     elif len(contour_sides) == 1:
         dst_left = dist(contour_sides[0][0][0], contour_sides[0][0][1])
         dst_right = dist(contour_sides[0][1][0], contour_sides[0][1][1])
         dst = (dst_left + dst_right) / 2
 
-        # FIXME remove prints
         # print(dst)
-        distance = 2 * 212 / dst
-        # print(distance)
+        distance = PIXELS_AT_TWO_FEET_ONE_TARGET / dst
 
     # Calculate distance from center to find [x] offset
     feet_at_dst = distance * math.sqrt(3)
-    pixels_to_feet = feet_at_dst / 1280
+    pixels_to_feet = feet_at_dst / width
 
     center = None
+    delta = 0
 
     if len(centers) == 2:
         cx = centers[0][0][0], centers[1][0][0]
         cy = centers[0][0][1], centers[1][0][1]
 
         center = (cx[0] + cx[1]) / 2, (cy[0] + cy[1]) / 2
+        print(center[0])
 
     # If one: get slope if slope > 0 target is on the left side, aka +.35 ft to get center
     elif len(contour_sides) == 1:
         left_side = contour_sides[0][0]
         slope = (left_side[0][1] - left_side[1][1]) / (left_side[0][0] - left_side[1][0])
         delta = 0.35 if slope > 0 else -0.35
-        center = centers[0][0][0] + delta, centers[0][0][1]
+        center = centers[0][0][0], centers[0][0][1]
 
-    offset = (dist(center, middle) * pixels_to_feet) - (pixels_to_feet / 2)
+    offset = ((center[0] - middle[0]) * pixels_to_feet) - (pixels_to_feet / 2) + delta
 
     return distance, offset
