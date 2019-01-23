@@ -4,7 +4,7 @@ import cv2
 import vision_proccessing as vision
 
 
-camera = cv2.VideoCapture(0)
+camera = cv2.VideoCapture(1)
 
 connection_timeout = 120
 NT_server = "roborio-4931-frc.local"
@@ -29,6 +29,7 @@ def connected():
         smartDashboard.putNumber("Vision Distance", distance)
         smartDashboard.putNumber("Vision Offset", offset)
 
+        print(distance, offset)
         cv2.waitKey(1)
 
 

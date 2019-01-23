@@ -157,7 +157,7 @@ def offset_calculate(frame, contours) -> tuple:
         cy = centers[0][0][1], centers[1][0][1]
 
         center = (cx[0] + cx[1]) / 2, (cy[0] + cy[1]) / 2
-        print(center[0])
+        # print(center[0])
 
     # If one: get slope if slope > 0 target is on the left side, aka +.35 ft to get center
     elif len(contour_sides) == 1:
