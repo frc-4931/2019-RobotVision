@@ -2,12 +2,27 @@ import cv2
 import math
 
 
-PIXELS_AT_TWO_FEET_TWO_TARGETS = 600
-PIXELS_AT_TWO_FEET_ONE_TARGET = 250
+class VisionSettings:
+    def __init__(self):
+        self.pixels_at_two_feet_two_targets = 600
+        self.pixels_at_two_feet_one_target = 250
+        self.hue = [53.417266187050366, 75.5631399317406]
+        self.sat = [208.67805755395685, 255.0]
+        self.val = [18.34532374100722, 255.0]
 
-hue = [53.417266187050366, 75.5631399317406]
-sat = [208.67805755395685, 255.0]
-val = [18.34532374100722, 255.0]
+
+class CameraSettings:
+    def __init__(self):
+        self.frame_height = 80
+        self.frame_width = 640
+        self.brightness = 0.5
+        self.auto_wb = 0.25
+        self.wb_temperature = 3184
+        self.saturation = 0.6
+        self.auto_exposure = 0.25
+        self.exposure = 0
+        self.contrast = 0.5
+        self.fps = 30.0
 
 
 def get_center(side):
@@ -26,25 +41,26 @@ def dist(p1, p2):
     return ((p2[0] - p1[0])**2 + (p2[1] - p1[1])**2)**(1/2)
 
 
-def camera_config(cam):
-    cam.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    cam.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+def camera_config(cam, settings: CameraSettings):
+    cam.set(cv2.CAP_PROP_FRAME_HEIGHT, settings.frame_height)
+    cam.set(cv2.CAP_PROP_FRAME_WIDTH, settings.frame_width)
 
-    cam.set(cv2.CAP_PROP_BRIGHTNESS, 0.5)  # [0, 1] ~1/2 - 142
-    cam.set(cv2.CAP_PROP_AUTO_WB, .25)
-    cam.set(cv2.CAP_PROP_WB_TEMPERATURE, 3184)  # [?] ~1/8 - 3184
-    cam.set(cv2.CAP_PROP_SATURATION, 0.60)  # [0, 1] ~2/3 - 128
-    cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)
-    cam.set(cv2.CAP_PROP_EXPOSURE, 0)  # [0, 1] ~1/4 - -9
-    cam.set(cv2.CAP_PROP_CONTRAST, 0.5)  # [0, 1] ~2/3 - 7
+    cam.set(cv2.CAP_PROP_BRIGHTNESS, settings.brightness)  # [0, 1] ~1/2 - 142
+    cam.set(cv2.CAP_PROP_AUTO_WB, settings.auto_wb)
+    cam.set(cv2.CAP_PROP_WB_TEMPERATURE, settings.wb_temperature)  # [?] ~1/8 - 3184
+    cam.set(cv2.CAP_PROP_SATURATION, settings.saturation)  # [0, 1] ~2/3 - 128
+    cam.set(cv2.CAP_PROP_AUTO_EXPOSURE, settings.auto_exposure)
+    cam.set(cv2.CAP_PROP_EXPOSURE, settings.exposure)  # [0, 1] ~1/4 - -9
+    cam.set(cv2.CAP_PROP_CONTRAST, settings.contrast)  # [0, 1] ~2/3 - 7
 
     # cam.set(cv2.CAP_PROP_CONVERT_RGB, 0)
-    cam.set(cv2.CAP_PROP_FPS, 30.0)
+    cam.set(cv2.CAP_PROP_FPS, settings.fps)
 
 
-def process_frame(frame):
+def process_frame(frame, settings: VisionSettings):
     color = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    filtered = cv2.inRange(color, (hue[0], sat[0], val[0]), (hue[1], sat[1], val[1]))
+    filtered = cv2.inRange(color, (settings.hue[0], settings.sat[0], settings.val[0]),
+                           (settings.hue[1], settings.sat[1], settings.val[1]))
 
     filtered, contours, hierarchy = cv2.findContours(filtered, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -64,7 +80,7 @@ def process_frame(frame):
     return approx
 
 
-def offset_calculate(frame, contours) -> tuple:
+def offset_calculate(frame, contours, settings: VisionSettings) -> tuple:
     offset, distance = 0, 0
 
     # If no contours exist return all -1
@@ -135,7 +151,7 @@ def offset_calculate(frame, contours) -> tuple:
     if len(centers) == 2:
         dst = dist(centers[0][0], centers[1][0])
         # print(dst)
-        distance = PIXELS_AT_TWO_FEET_TWO_TARGETS / dst
+        distance = settings.pixels_at_two_feet_two_targets / dst
 
     elif len(contour_sides) == 1:
         dst_left = dist(contour_sides[0][0][0], contour_sides[0][0][1])
@@ -143,7 +159,7 @@ def offset_calculate(frame, contours) -> tuple:
         dst = (dst_left + dst_right) / 2
 
         # print(dst)
-        distance = PIXELS_AT_TWO_FEET_ONE_TARGET / dst
+        distance = settings.pixels_at_two_feet_one_target / dst
 
     # Calculate distance from center to find [x] offset
     feet_at_dst = distance * math.sqrt(3)
