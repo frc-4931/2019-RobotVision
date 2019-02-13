@@ -1,28 +1,65 @@
 import cv2
 import math
+from json import dumps, loads
 
 
 class VisionSettings:
-    def __init__(self):
-        self.pixels_at_two_feet_two_targets = 600
-        self.pixels_at_two_feet_one_target = 250
-        self.hue = [53.417266187050366, 75.5631399317406]
-        self.sat = [208.67805755395685, 255.0]
-        self.val = [18.34532374100722, 255.0]
+    def __init__(self, **kwargs):
+        pixels_at_two_feet_two_targets = 600
+        pixels_at_two_feet_one_target = 250
+        hue = [53.417266187050366, 75.5631399317406]
+        sat = [208.67805755395685, 255.0]
+        val = [18.34532374100722, 255.0]
+
+        self.pixels_at_two_feet_two_targets = kwargs["pixels_at_two_feet_two_targets"] \
+            if "pixels_at_two_feet_two_targets" in kwargs.keys() else pixels_at_two_feet_two_targets
+        self.pixels_at_two_feet_one_target = kwargs["pixels_at_two_feet_one_target"] \
+            if "pixels_at_two_feet_one_target" in kwargs.keys() else pixels_at_two_feet_one_target
+        self.hue = kwargs["hue"] if "hue" in kwargs.keys() else hue
+        self.sat = kwargs["sat"] if "sat" in kwargs.keys() else sat
+        self.val = kwargs["val"] if "val" in kwargs.keys() else val
+
+    def get_json(self):
+        return dumps(vars(self))
 
 
 class CameraSettings:
-    def __init__(self):
-        self.frame_height = 80
-        self.frame_width = 640
-        self.brightness = 0.5
-        self.auto_wb = 0.25
-        self.wb_temperature = 3184
-        self.saturation = 0.6
-        self.auto_exposure = 0.25
-        self.exposure = 0
-        self.contrast = 0.5
-        self.fps = 30.0
+    def __init__(self, **kwargs):
+        frame_height = 480
+        frame_width = 640
+        brightness = 0.5
+        auto_wb = 0.25
+        wb_temperature = 3184
+        saturation = 0.6
+        auto_exposure = 0.25
+        exposure = 0
+        contrast = 0.5
+        fps = 30.0
+
+        self.frame_height = kwargs["frame_height"] if "frame_height" in kwargs.keys() else frame_height
+        self.frame_width = kwargs["frame_width"] if "frame_width" in kwargs.keys() else frame_width
+        self.brightness = kwargs["brightness"] if "brightness" in kwargs.keys() else brightness
+        self.auto_wb = kwargs["auto_wb"] if "auto_wb" in kwargs.keys() else auto_wb
+        self.wb_temperature = kwargs["wb_temperature"] if "wb_temperature" in kwargs.keys() else wb_temperature
+        self.saturation = kwargs["saturation"] if "saturation" in kwargs.keys() else saturation
+        self.auto_exposure = kwargs["auto_exposure"] if "auto_exposure" in kwargs.keys() else auto_exposure
+        self.exposure = kwargs["exposure"] if "exposure" in kwargs.keys() else exposure
+        self.contrast = kwargs["contrast"] if "contrast" in kwargs.keys() else contrast
+        self.fps = kwargs["fps"] if "fps" in kwargs.keys() else fps
+
+    def get_json(self):
+        return dumps(vars(self))
+
+
+def read_from_file(file) -> dict:
+    with open(file) as f:
+        info = f.read()
+        return loads(info)
+
+
+def write_to_file(file, data):
+    with open(file, mode="w") as file:
+        file.write(data)
 
 
 def get_center(side):

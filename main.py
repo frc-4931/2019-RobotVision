@@ -8,9 +8,14 @@ camera = cv2.VideoCapture(0)
 
 connection_timeout = 120
 NT_server = "roborio-4931-frc.local"
+file_camera = "cameraSettings.json"
+file_vision = "visionSettings.json"
 
-camera_settings = vision.CameraSettings()
-vision_settings = vision.VisionSettings()
+json_camera = vision.read_from_file(file_camera)
+json_vision = vision.read_from_file(file_vision)
+
+camera_settings = vision.CameraSettings(**json_camera)
+vision_settings = vision.VisionSettings(**json_vision)
 
 # Pi located at pi@vision.local -pass raspberry
 
