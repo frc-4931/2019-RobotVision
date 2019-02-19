@@ -2,25 +2,15 @@ from networktables import NetworkTables
 from time import sleep, ctime, time
 import cv2
 import vision_proccessing as vision
-
-
-camera = cv2.VideoCapture(0)
+import argparse
 
 connection_timeout = 120
 NT_server = "roborio-4931-frc.local"
-file_camera = "/home/pi/vision/cameraSettings.json"
-file_vision = "/home/pi/vision/visionSettings.json"
-
-json_camera = vision.read_from_file(file_camera)
-json_vision = vision.read_from_file(file_vision)
-
-camera_settings = vision.CameraSettings(**json_camera)
-vision_settings = vision.VisionSettings(**json_vision)
 
 # Pi located at pi@vision.local -pass raspberry
 
 
-def connected():
+def connected(vs_settings, cam_settings, camera):
     global smartDashboard
     smartDashboard = NetworkTables.getTable("SmartDashboard")
     smartDashboard.putString("Data from PiPy", "Connected on {0:s}".format(ctime()))
@@ -30,10 +20,10 @@ def connected():
         ret, frame = camera.read()
 
         # Calculate outlines of objects
-        contours = vision.process_frame(frame, vision_settings)
+        contours = vision.process_frame(frame, vs_settings)
 
         # Calculate position to target
-        distance, offset = vision.offset_calculate(frame, contours, vision_settings)
+        distance, offset = vision.offset_calculate(frame, contours, cam_settings)
 
         # Send position to RoboRIO through SmartDashboard
         smartDashboard.putNumber("Vision Distance", distance)
@@ -44,6 +34,26 @@ def connected():
 
 
 if __name__ == "__main__":
+    file_camera = "/home/pi/vision/cameraSettings.json"
+    file_vision = "/home/pi/vision/visionSettings.json"
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-r", "--relative", action="store_true")
+    parser.add_argument("-c", "--camera", type=int, default=0)
+    args = parser.parse_args()
+
+    if args.relative:
+        file_camera = "cameraSettings.json"
+        file_vision = "visionSettings.json"
+
+    camera = cv2.VideoCapture(args.camera)
+
+    json_camera = vision.read_from_file(file_camera)
+    json_vision = vision.read_from_file(file_vision)
+
+    camera_settings = vision.CameraSettings(**json_camera)
+    vision_settings = vision.VisionSettings(**json_vision)
+
     NetworkTables.initialize(server=NT_server)
     connecting = True
     isConnected = False
@@ -64,6 +74,6 @@ if __name__ == "__main__":
 
     if isConnected:
         print("Connection to {:s} successful!".format(NT_server))
-        connected()
+        connected(vision_settings, camera_settings, camera)
     else:
         print("Failed to connect to {:s}! Exiting...".format(NT_server))
