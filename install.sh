@@ -13,7 +13,7 @@
 # `ssh pi@vision.local` -> `sh install.sh`
 #
 # Add vision to pi's boot:
-#  `sudo nano /etc/rc.local` -> Add line before `exit 0`: `sudo python3 /home/pi/vision/main.py &`
+#  `sudo nano /etc/rc.local` -> Add line before `exit 0`: `sudo sh /home/pi/vision/run.sh &`
 
 yes | sudo apt-get update
 yes | sudo apt-get upgrade

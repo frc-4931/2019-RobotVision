@@ -122,7 +122,7 @@ def offset_calculate(frame, contours, settings: VisionSettings) -> tuple:
 
     # If no contours exist return all -1
     if len(contours) == 0:
-        return -1, -1
+        return -1, 0, False
 
     # Find the center (x, y) of the frame
     height, width, channels = frame.shape
@@ -221,4 +221,4 @@ def offset_calculate(frame, contours, settings: VisionSettings) -> tuple:
 
     offset = ((center[0] - middle[0]) * pixels_to_feet) - (pixels_to_feet / 2) + delta
 
-    return distance, offset
+    return distance, offset, True

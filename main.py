@@ -10,26 +10,42 @@ NT_server = "roborio-4931-frc.local"
 # Pi located at pi@vision.local -pass raspberry
 
 
-def connected(vs_settings, cam_settings, camera):
+def connected(vs_settings, cam: cv2.VideoCapture):
     global smartDashboard
     smartDashboard = NetworkTables.getTable("SmartDashboard")
     smartDashboard.putString("Data from PiPy", "Connected on {0:s}".format(ctime()))
 
     while True:
         # Get the current frame from camera
-        ret, frame = camera.read()
+        ret, frame = cam.read()
 
         # Calculate outlines of objects
         contours = vision.process_frame(frame, vs_settings)
 
         # Calculate position to target
-        distance, offset = vision.offset_calculate(frame, contours, cam_settings)
+        distance, offset, sight = vision.offset_calculate(frame, contours, vs_settings)
 
         # Send position to RoboRIO through SmartDashboard
         smartDashboard.putNumber("Vision Distance", distance)
         smartDashboard.putNumber("Vision Offset", offset)
+        smartDashboard.putBoolean("Vision Sight", sight)
 
-        print(distance, offset)
+        print(distance, offset, sight)
+        cv2.waitKey(1)
+
+
+def run_local(vs_settings, cam):
+    while True:
+        # Get the current frame from camera
+        ret, frame = cam.read()
+
+        # Calculate outlines of objects
+        contours = vision.process_frame(frame, vs_settings)
+
+        # Calculate position to target
+        distance, offset, sight = vision.offset_calculate(frame, contours, vs_settings)
+
+        print(distance, offset, sight)
         cv2.waitKey(1)
 
 
@@ -38,8 +54,11 @@ if __name__ == "__main__":
     file_vision = "/home/pi/vision/visionSettings.json"
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("-r", "--relative", action="store_true")
-    parser.add_argument("-c", "--camera", type=int, default=0)
+    parser.add_argument("-r", "--relative", action="store_true", help="Sets paths to be relative to execution path."
+                                                                      "\nUse this when running on a computer")
+    parser.add_argument("-l", "--local", action="store_true", help="Sets the program to not try to connect to the "
+                                                                   "RoboRIO.\nUseful for test on a local machine.")
+    parser.add_argument("-c", "--camera", type=int, default=0, help="Sets the which camera to use.")
     args = parser.parse_args()
 
     if args.relative:
@@ -62,18 +81,23 @@ if __name__ == "__main__":
     # Configure the camera
     vision.camera_config(camera, camera_settings)
 
-    print("Vision: Connecting to {:s}".format(NT_server))
-    while connecting:
-        if NetworkTables.isConnected():
-            connecting = False
-            isConnected = True
+    if args.local:
+        run_local(vision_settings, camera)
 
-        elif time() - start_time >= connection_timeout:
-            connecting = False
-            isConnected = False
-
-    if isConnected:
-        print("Connection to {:s} successful!".format(NT_server))
-        connected(vision_settings, camera_settings, camera)
     else:
-        print("Failed to connect to {:s}! Exiting...".format(NT_server))
+        print("Vision: Connecting to {:s}".format(NT_server))
+
+        while connecting:
+            if NetworkTables.isConnected():
+                connecting = False
+                isConnected = True
+
+            elif time() - start_time >= connection_timeout:
+                connecting = False
+                isConnected = False
+
+        if isConnected:
+            print("Connection to {:s} successful!".format(NT_server))
+            connected(vision_settings, camera)
+        else:
+            print("Failed to connect to {:s}! Exiting...".format(NT_server))
