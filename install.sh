@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # Password is `raspberry`
 #
 # Place a file with name "ssh" onto the root of the pi's SD card.
@@ -7,9 +8,11 @@
 # SSH pi@raspberrypi.local -> Configure with raspi-config:
 # Network Options -> hostname -> "vision" -> Reboot Yes
 #
+# From this point on you can follow these instructions or run the automated setup.sh script
+#
 # Run this file on the pi:
 # `ssh pi@vision.local` -> `mkdir vision` -> `exit`
-# `scp 2019-Vision/* pi@vision.local:vision -> `exit``
+# `scp 2019-Vision/* pi@vision.local:vision`
 # `ssh pi@vision.local` -> `sh install.sh`
 #
 # Add vision to pi's boot:
