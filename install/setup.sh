@@ -31,5 +31,8 @@ sshpass -p 'raspberry' ssh -o StrictHostKeyChecking=no pi@vision.local 'sudo sh 
 # SCP the pre-made rc.local script
 sshpass -p 'raspberry' scp -o StrictHostKeyChecking=no install/rc.local pi@vision.local:/etc/rc.local
 
+# Make new rc.local script executable
+sshpass -p 'raspberry' ssh -o StrictHostKeyChecking=no pi@vision.local 'sudo chmod +x /etc/rc.local'
+
 # Restart the raspberry pi for the changes to take effect
 sshpass -p 'raspberry' ssh -o StrictHostKeyChecking=no 'sudo shutdown -r now'
